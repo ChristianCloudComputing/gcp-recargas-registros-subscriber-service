@@ -14,6 +14,9 @@ const log = logging.log(logName);
 // Initialize Firestore once at startup with proper scopes
 const db = new Firestore({
     projectId: "my-project-1571074190064",
+    databaseId: "gcp-recargas-db" // Specify the database ID here
+    // Other options:
+    // databaseId: "(default)",
     // Explicitly specify scopes if needed
     // This ensures the client has the right permissions
 });
