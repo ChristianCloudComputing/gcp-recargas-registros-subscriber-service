@@ -11,6 +11,13 @@ const logName = "gcp-recargas-registros-log";
 const logging = new Logging();
 const log = logging.log(logName);
 
+// Initialize Firestore once at startup with proper scopes
+const db = new Firestore({
+    projectId: "my-project-1571074190064",
+    // Explicitly specify scopes if needed
+    // This ensures the client has the right permissions
+});
+
 const resource = {
     type: "global",
 };
@@ -30,8 +37,18 @@ app.post('/', async (req, res) => {
     res.status(204).send();
   }
   catch (ex) {
-    console.log(`GCP Recarga Service: Report ${recarga.id} failure: ${ex}`);
-    res.status(500).send();
+    console.log(`GCP Recarga Service: Report ${recarga?.id || 'unknown'} failure: ${ex}`);
+    console.error('Full error details:', ex);
+    
+    // Check for authentication errors
+    if (ex.message && (ex.message.includes('PERMISSION_DENIED') || ex.message.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT'))) {
+      console.error('Authentication/Scope Error: The service account lacks proper Firestore access scopes.');
+      console.error('Required OAuth scopes: https://www.googleapis.com/auth/datastore or https://www.googleapis.com/auth/cloud-platform');
+      console.error('For Cloud Run: Make sure the service account has Cloud Datastore User role');
+      console.error('For local development: Run "gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform"');
+    }
+    
+    res.status(500).send({ error: 'Internal server error', message: ex.message });
   }
 })
 
@@ -74,10 +91,7 @@ async function writeToFirestore(recarga) {
     console.log(`Document ID type:`, typeof recarga.telefono);
     console.log(`Document ID length:`, recarga.telefono ? recarga.telefono.length : 'N/A');
     
-    const db = new Firestore({
-        projectId: "my-project-1571074190064"
-    });
-
+    // Use the global db instance instead of creating a new one each time
     // Additional validation before creating document reference
     if (!recarga.telefono || typeof recarga.telefono !== 'string' || recarga.telefono.trim() === '') {
         throw new Error(`Invalid document ID: '${recarga.telefono}'. Document ID must be a non-empty string.`);
