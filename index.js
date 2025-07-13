@@ -29,15 +29,15 @@ app.listen(port, () => {
 
 app.post('/', async (req, res) => {
   console.log(`Received request body:`, JSON.stringify(req.body, null, 2));
-  const recarga = req.body;
+  const recarga = decodeBase64Json(req.body.message.data);
   try {
-    console.log(`GCP Recarga Service: Report ${recarga.id} trying...`);
+    console.log(`GCP Recarga Service: Report ${recarga.telefono} trying...`);
     await saveRegistro(recarga);
-    console.log(`GCP Recarga Service: Report ${recarga.id} success :-)`);
+    console.log(`GCP Recarga Service: Report ${recarga.telefono} success :-)`);
     res.status(204).send();
   }
   catch (ex) {
-    console.log(`GCP Recarga Service: Report ${recarga?.id || 'unknown'} failure: ${ex}`);
+    console.log(`GCP Recarga Service: Report ${recarga?.telefono || 'unknown'} failure: ${ex}`);
     console.error('Full error details:', ex);
     
     // Check for authentication errors
@@ -112,4 +112,8 @@ async function writeToFirestore(recarga) {
         console.log(`Error saving registro: ${err}`);
         throw err; // Re-throw to be handled by the calling function
     }
+}
+
+function decodeBase64Json(data) {
+  return JSON.parse(Buffer.from(data, 'base64').toString());
 }
